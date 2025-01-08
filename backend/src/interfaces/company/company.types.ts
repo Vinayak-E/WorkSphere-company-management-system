@@ -6,7 +6,6 @@ export interface IAddress {
   zipCode: string;
 }
 
-
 export interface ICompanySignup {
   companyName: string;
   email: string;
@@ -14,13 +13,13 @@ export interface ICompanySignup {
   phone: string;
 }
 
-
 export interface ICompanyDocument extends Document {
   _id: string;
   companyName: string;
   email: string;
   password: string;
   phone: string;
+  role: string;
   address?: IAddress;
   isEmailVerified: boolean;
   isActive: boolean;
@@ -42,35 +41,37 @@ export interface ICompanyDocument extends Document {
   comparePassword(candidatePassword: string): Promise<boolean>;
   hasValidSubscription(): boolean;
 }
+
 export interface IVerifyOtpDto {
   email: string;
   otp: string;
 }
 
+export interface ICompanyUser {
+  _id: string;
+  email: string;
+  role: string;
+ 
+}
 
 export interface ICompanyService {
-  signup(data: ICompanySignup): Promise<void>;
-  verifyOTP(data: IVerifyOtpDto): Promise<void>;
-  resendOTP(email: string): Promise<void>;
-  login(email: string, password: string): Promise<{
-    accessToken: string;
-    refreshToken: string;
-    company: {
-      id: string;
-      email: string;
-      name: string;
-    };
-  }>;
-  refreshToken(refreshToken: string): Promise<{ accessToken: string }>;
+  signup(data: ICompanySignup): Promise<string | boolean | null>;
+  verifyOtp(data: IVerifyOtpDto): Promise<boolean>; 
+  verifyLogin(email:string,password:string):Promise<ICompanyUser |null>
+  generateOtp(email: string): Promise<any>
+  generateAccessToken(userId: string): Promise<string>
+  verifyRefreshToken(refreshToken: string): Promise<string | null>
+
 }
 
 export interface ICompanyRepository {
-  create(company: ICompanySignup): Promise<ICompanyDocument>;
+  createCompany(company: ICompanySignup): Promise<string | null>;
   findByEmail(email: string): Promise<ICompanyDocument | null>;
-  update(id: string, data: Partial<ICompanyDocument>): Promise<ICompanyDocument | null>;
-  updateOTP(email: string, otp: string, otpExpiry: Date): Promise<void>; 
-  saveRefreshToken(companyId: string, token: string): Promise<void>;
-  verifyRefreshToken(companyId: string, token: string): Promise<boolean>;
-
+  
+ 
 }
 
+export interface IOtpRepository {
+  storeOtp(email: string, otp: string): Promise<void>;
+  verifyOtp(email: string, otp: string): Promise<boolean>; 
+}

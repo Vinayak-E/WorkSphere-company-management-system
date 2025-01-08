@@ -43,6 +43,9 @@ const companySchema = new Schema<ICompanyDocument>(
       required: [true, 'Phone number is required'],
       match: [/^\+?[\d\s-]{10,}$/, 'Please enter a valid phone number'],
     },
+    role:{
+      type : String,
+    },
     address: {
       type: addressSchema,
       required: false,
@@ -110,18 +113,6 @@ const companySchema = new Schema<ICompanyDocument>(
 companySchema.index({ email: 1 }, { unique: true });
 companySchema.index({ companyName: 'text', description: 'text' });
 
-// Hash password before saving
-companySchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error instanceof Error ? error : new Error('An unexpected error occurred during password hashing'));
-  }
-});
-
 
 // Compare passwords
 companySchema.methods.comparePassword = async function (candidatePassword: string) {
@@ -136,4 +127,5 @@ companySchema.methods.hasValidSubscription = function () {
   );
 };
 
-export const Company = mongoose.model<ICompanyDocument>('Company', companySchema);
+const Company = mongoose.model<ICompanyDocument>('Company', companySchema);
+export default Company;
