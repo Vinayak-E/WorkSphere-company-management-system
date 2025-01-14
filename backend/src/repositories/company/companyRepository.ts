@@ -1,7 +1,8 @@
 import { Model } from "mongoose";
-import { ICompanyDocument, ICompanyRepository ,ICompanySignup} from "../../interfaces/company/company.types";
+import { ICompanyDocument, ICompanyRepository ,ICompanySignup, ICreateCompany} from "../../interfaces/company/company.types";
 import Company  from "../../models/companyModel";
-
+import { UserModel } from "../../models/userModel";
+import { IUser } from "../../interfaces/IUser.types";
 export class CompanyRepository implements ICompanyRepository {
   private readonly model: Model<ICompanyDocument>;
 
@@ -9,18 +10,19 @@ export class CompanyRepository implements ICompanyRepository {
     this.model = Company;
   }
 
-  async findByEmail(email: string): Promise<ICompanyDocument | null> {
-    const data=  await this.model.findOne({ email });
+  async findByEmail(email: string): Promise<IUser | null> {
+    const data=  await UserModel.findOne({ email });
     if (!data) {
       return null;
     }
     return data
   }
-  async createCompany(newCompany:ICompanySignup) {
+
+  async createCompany(newCompany:ICreateCompany) {
     try{
       const company = new this.model(newCompany)
       await company.save()
-      return company.email
+      return company
       
     }catch (error){
       console.log("Error creating the company",error);
@@ -28,7 +30,7 @@ export class CompanyRepository implements ICompanyRepository {
     }
   }
 
-
+  
   async storeResetToken(email: string, resetToken: string, tokenExpiry: Date): Promise<void> {
     try {
         await this.model.updateOne(

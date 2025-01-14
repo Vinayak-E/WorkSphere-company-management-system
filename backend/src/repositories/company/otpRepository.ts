@@ -1,5 +1,6 @@
 import OTP from '../../models/otpModel';
 import Company from '../../models/companyModel';
+import { UserModel } from '../../models/userModel';
 import { IOtpRepository } from '../../interfaces/company/company.types';
 
 class OtpRepository implements IOtpRepository {
@@ -17,7 +18,7 @@ class OtpRepository implements IOtpRepository {
         try {
             const record = await OTP.findOne({ email, otp, expiresAt: { $gt: new Date() } });
             if (record) {
-                await Company.findOneAndUpdate({ email }, { isVerified: true });
+                await UserModel.findOneAndUpdate({ email }, { isVerified: true });
             }
             return !!record;
         } catch (error) {

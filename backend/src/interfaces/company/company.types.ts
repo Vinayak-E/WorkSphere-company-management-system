@@ -1,3 +1,6 @@
+import { ObjectId } from "mongoose";
+import { IUser } from "../IUser.types";
+
 export interface IAddress {
   street: string;
   city: string;
@@ -7,10 +10,22 @@ export interface IAddress {
 }
 
 export interface ICompanySignup {
-  companyName: string;
+  companyName: string | null;
   email: string;
-  password: string;
-  phone: string;
+  password: string ;
+  phone: string | null;
+  userId?: string
+}
+
+export interface ICreateCompany {
+  userId: string;
+  companyName: string | null;
+  phone: string | null;
+  email: string;
+}
+export interface IGoogleSignup {
+  email: string;
+  googleId: string;
 }
 
 export interface ICompanyDocument extends Document {
@@ -19,12 +34,12 @@ export interface ICompanyDocument extends Document {
   email: string;
   password: string;
   phone: string;
-  role: string;
+  userId : ObjectId
   address?: IAddress;
-  isEmailVerified: boolean;
   isActive: boolean;
-  otp?: string;
-  otpExpiry?: Date;
+ 
+  role:string
+ 
   logo?: string;
   industry?: string;
   description?: string;
@@ -61,14 +76,18 @@ export interface ICompanyService {
   generateOtp(email: string): Promise<any>
   generateAccessToken(userId: string): Promise<string>
   verifyRefreshToken(refreshToken: string): Promise<string | null>
+  sendResetLink(email: string): Promise<boolean | null>
+  resetPassword(email: string, password: string): Promise<void>
+  findOrCreateCompany(profile: any): Promise<any>
 
 }
 
 export interface ICompanyRepository {
-  createCompany(company: ICompanySignup): Promise<string | null>;
-  findByEmail(email: string): Promise<ICompanyDocument | null>;
-  
- 
+  createCompany(company: ICreateCompany, options?: any): Promise<ICompanyDocument |null>;
+  findByEmail(email: string): Promise<IUser| null>;
+  storeResetToken(email: string, resetToken: string, tokenExpiry: Date):any
+  resetPassword(email: string, password: string): Promise<void>
+
 }
 
 export interface IOtpRepository {

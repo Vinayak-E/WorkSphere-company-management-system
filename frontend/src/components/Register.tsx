@@ -181,11 +181,11 @@ const  Regcopy= () => {
 
       <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-8 items-center">
         {/* Left side content remains the same */}
-        <div className="text-black space-y-10">
+        <div className="text-[#2C3E50] space-y-10">
           <h1 className="text-4xl sm:text-5xl font-bold leading-snug mt-8 sm:mt-0">
             Streamline Your Company Management with WorkSphere
           </h1>
-          <p className="text-lg md:text-xl text-gray-900">
+          <p className="text-lg md:text-xltext-[#333333]">
             Enjoy efficient operations, enhanced employee engagement, and improved workforce outcomes.
           </p>
           
@@ -304,7 +304,7 @@ const  Regcopy= () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-black text-white py-3 px-6 rounded-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#4598c5] text-white py-3 px-6 rounded-lg hover:bg-[#3D7EBD] transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? "Creating Account..." : "Create Account"}
             </button>

@@ -4,7 +4,11 @@ import api from "../api/axios";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
-
+import ForgotPasswordModal from "./ForgotPasswordModal";
+// import { toast, ToastContainer } from 'react-toastify';
+import { authController } from "../controllers/authController";
+import 'react-toastify/dist/ReactToastify.css';
+import { login } from "../redux/slices/authSlice";
 
 interface SignupResponse {
   registeredMail: string;
@@ -32,11 +36,30 @@ const  Regcopy= () => {
   const [formState, setFormState] = useState<FormState>({
     email: { value: "", error: "", touched: false, isValid: false },
     password: { value: "", error: "", touched: false, isValid: false },
-  });  const [errorMessage, setErrorMessage] = useState("");
+  });  
+  const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [userType,setUserType] =useState('EMPLOYEE')
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+
+  const handleGoogleLogin = async () => {
+    try {
+        const user = await authController.handleGoogleLogin();
+        console.log('User:', user);
+
+        const { accessToken, refreshToken, user: userData } = user;
+
+        dispatch(login({ email: userData.email, accessToken, refreshToken, isAdmin: userData.isAdmin }));
+        navigate('/dashboard');
+    } catch (error) {
+        console.error('Google login failed:', error);
+        setErrorMessage('Google login failed. Please try again.');
+    }
+  };
 
   const validateField = (name: FieldName, value: string, allValues: FormState): FieldState => {
     let error = "";
@@ -98,20 +121,32 @@ const  Regcopy= () => {
     if (isValid) {
       setIsSubmitting(true);
       try {
-        const response = await api.post<SignupResponse>("/auth/login", {
+        const response = await api.post("/auth/login", {
         
           email: formState.email.value,
           password: formState.password.value,
-         
+          userType : userType
         });
-
-        if (response.status === 201) {
+             console.log("response",response);
+             
+        if (response.status === 200) {
           const { registeredMail } = response.data;
-          navigate(`/dashboard}`);
+      
+
+          localStorage.setItem("user", JSON.stringify(response.data.responseData));
+          localStorage.setItem("accessToken", response.data.responseData.accessToken);
+          const role = response.data.responseData.role;
+          console.log('role of the user',role);
+          
+          if (role === "admin") navigate("/admin");
+          else if (role === "COMPANY") navigate("/company");
+          else if (role === "MANAGER") navigate("/manager");
+          else if (role === "EMPLOYEE") navigate("/employee");
         } else {
           setErrorMessage(response.data.message);
         }
       } catch (error: unknown) {
+        console.log(error)
         if (error instanceof AxiosError) {
           setErrorMessage(error.response?.data?.message || "An error occurred.");
         } else {
@@ -122,28 +157,33 @@ const  Regcopy= () => {
       }
     }
   };
-
   const getInputStyle = (field: FieldState) => `
     w-full pb-2 border-b-2 
     ${field.touched && field.error ? "border-red-500" : "border-gray-300"}
-    ${field.touched && !field.error ? "border-green-500" : ""}
-    focus:border-black outline-none
-  `;
+    ${field.touched && !field.error ? "border-green-500" : ""} focus:border-black outline-none`;
 
+  
+     
   return (
+    <>
+    <ForgotPasswordModal 
+    isOpen={showForgotModal} 
+    onClose={() => setShowForgotModal(false)} 
+    />
     <div className="min-h-screen bg-[#E9E9E9] p-3 md:p-6 lg:p-8 relative">
-      <div className="top-8 left-8">
+      <div className="top-0 left-0">
         <img src={IMAGES.navBarLogoDark} alt="WorkSphere Logo" className="w-32 h-auto" />
       </div>
 
       <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-8 items-center">
-        {/* Left side content remains the same */}
-        <div className="text-black space-y-10">
+        <div className="text-[#2C3E50] space-y-10">
           <h1 className="text-4xl sm:text-5xl font-bold leading-snug mt-8 sm:mt-0">
-            Streamline Your Company Management with WorkSphere
+           {userType === 'EMPLOYEE' ? "Welcome Back to Your Workspace" : "Streamline Your Company Management"}
           </h1>
-          <p className="text-lg md:text-xl text-gray-900">
-            Enjoy efficient operations, enhanced employee engagement, and improved workforce outcomes.
+          <p className="text-lg md:text-xl text-[#333333]">
+          {userType === 'EMPLOYEE'
+              ? "Access your work environment securely and efficiently."
+              : "Enhance operations and improve workforce management with WorkSphere."}
           </p>
           
           <div className="grid grid-cols-3 gap-4 pt-8">
@@ -162,12 +202,34 @@ const  Regcopy= () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl max-w-lg mx-auto w-full">
-          <h1 className="text-xl font-bold mb-6 text-center">WELCOME BACK</h1>
-          <h4 className="text-lg font-semibold mb-6">Login to manage your account</h4>
-          <form onSubmit={handleSubmit} className="space-y-6">
-  
+        <div className="bg-white rounded-3xl p-1 md:p-8 shadow-xl max-w-lg mx-auto w-full ">
+          <h1 className="text-xl font-bold mb-6 text-center">{userType === 'EMPLOYEE' ? 'EMPLOYEE LOGIN' : 'COMPANY LOGIN'}</h1>
+          <div className="flex justify-center mb-6">
+          <div className="inline-flex  mb-6  rounded-lg border border-gray-200 p-1">
+              <button
+                onClick={() => setUserType('EMPLOYEE')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  userType === 'EMPLOYEE'
+                    ? 'bg-[#6C7A89] text-white'
+                    : 'text-gray-500 hover:text-[#5B6770]'
+                }`}
+              >
+                Employee Login
+              </button>
+              <button
+                onClick={() => setUserType('COMPANY')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  userType === 'COMPANY'
+                    ? 'bg-[#6C7A89] text-white'
+                    : 'text-gray-500 hover:text-[#5B6770]'
+                }`}
+              >
+                Company Login
+              </button>
+            </div>
+            </div>
 
+          <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email
@@ -184,11 +246,6 @@ const  Regcopy= () => {
                   <p className="text-sm text-red-500 mt-1">{formState.email.error}</p>
                 )}
               </div>
-
-            
-        
-
-          
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
@@ -196,7 +253,7 @@ const  Regcopy= () => {
                 <input
                   type="password"
                   id="password"
-                  placeholder="Create a strong password"
+                  placeholder="Enter your password"
                   value={formState.password.value}
                   onChange={handleChange("password")}
                   className={getInputStyle(formState.password)}
@@ -205,10 +262,12 @@ const  Regcopy= () => {
                   <p className="text-sm text-red-500 mt-1">{formState.password.error}</p>
                 )}
               </div>
+              <button  type='button'   onClick={()=> setShowForgotModal(true)} className="text-gray-400 hover:text-gray-900 hover:underline">
+                Forgot password?
+              </button>
 
-          
-           
 
+        
             {errorMessage && (
               <p className="text-sm text-red-500">{errorMessage}</p>
             )}
@@ -216,10 +275,13 @@ const  Regcopy= () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-black text-white py-3 px-6 rounded-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+              className="w-full bg-[#4598c5] text-white py-3 px-6 rounded-lg hover:bg-[#3D7EBD] transition disabled:opacity-50 disabled:cursor-not-allowed "
+               >
               {isSubmitting ? "Loading..." : "Login"}
             </button>
+
+            {userType === 'COMPANY' && (
+              <>
 
             <div className="relative flex items-center justify-center">
               <div className="border-t border-gray-300 w-full"></div>
@@ -229,6 +291,7 @@ const  Regcopy= () => {
 
             <button
               type="button"
+              onClick={handleGoogleLogin}
               className="w-full flex items-center justify-center space-x-2 border border-gray-300 rounded-lg py-3 px-4 hover:bg-gray-50 transition duration-300"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -249,7 +312,7 @@ const  Regcopy= () => {
                   fill="#EA4335"
                 />
               </svg>
-              <span className="text-gray-700 font-medium">Continue with Google</span>
+              <span  className="text-gray-700 font-medium">Continue with Google</span>
             </button>
 
             <p className="text-sm text-gray-500 text-center">
@@ -258,10 +321,15 @@ const  Regcopy= () => {
               Create New Account
               </a>
             </p>
+            </>
+            )}
           </form>
+
         </div>
+      
       </div>
     </div>
+    </>
   );
 };
 

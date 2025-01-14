@@ -13,7 +13,7 @@ node_modules/
 # Production files
 build/
 dist/
-
+src/configs/serviceAccount.json
 # Temporary files
 *.tmp
 *.swp

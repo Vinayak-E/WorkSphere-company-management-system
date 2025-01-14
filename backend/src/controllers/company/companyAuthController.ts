@@ -1,15 +1,15 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import { ICompanyService } from "../../interfaces/company/company.types";
 import jwt, { JwtPayload} from "jsonwebtoken";
-
+import { firebaseAdmin } from "../../configs/firebase.config";
 export class CompanyAuthController {
   constructor(private readonly companyService: ICompanyService) {}
 
   signup: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = req.body;
+      const data = req.body; 
       const registeredMail =  await this.companyService.signup(data);
-      console.log('registered mail: ', registeredMail);
+
       if (registeredMail) {
         res.status(201).json({ success: true, registeredMail });
     } else {
@@ -52,11 +52,11 @@ resendOtp:RequestHandler = async (req: Request, res: Response, next: NextFunctio
       res.status(500).json({ message: 'Error generating the OTP', error });
   }
 }
+
 login:RequestHandler = async (req: Request, res: Response, next: NextFunction) =>{
   try {
       const { email, password } = req.body;
-
-
+    
       if (!process.env.ACCESS_TOKEN_SECRET || !process.env.REFRESH_TOKEN_SECRET) {
           throw new Error('JWT secrets are not configured');
         }
@@ -116,36 +116,71 @@ refreshToken:RequestHandler = async (req: Request, res: Response, next: NextFunc
 }
 
 
-//  forgotPassword :RequestHandler = async (req: Request, res: Response, next: NextFunction) =>{
-//   try {
-//       const { email } = req.body;
-//       const sendResetLink = await this.companyService.sendResetLink(email);
-//       if (sendResetLink === false) {
-//           res.status(400).json({ message: 'The email is not registered!' });
-//       } else if (sendResetLink) {
-//           res.status(200).json({ message: 'The otp has sent to your email' });
-//       }
-//   } catch (error) {
-//       res.status(500).json({ message: 'Something went wrong!', error: error.message });
-//       console.log('Something went wrong during resetting the forgot password', error);
-//   }
-// }
+ forgotPassword :RequestHandler = async (req: Request, res: Response, next: NextFunction) =>{
+  try {
+      const { email } = req.body;
+      console.log('forgetPassreq',req.body);
+      
+      const sendResetLink = await this.companyService.sendResetLink(email);
+      if (sendResetLink === false) {
+        console.log(sendResetLink)
+          res.status(400).json({ message: 'The email is not registered!' });
+      } else if (sendResetLink) {
+          res.status(200).json({ message: 'The otp has sent to your email' });
+      }
+  } catch (error) {
+      res.status(500).json({ message: 'Something went wrong!'});
+      console.log('Something went wrong during resetting the forgot password', error);
+  }
+}
 
-//  resetPassword :RequestHandler = async (req: Request, res: Response, next: NextFunction) =>{
-//   const { token, newPassword } = req.body;
-//   console.log('token & pass: ', token, ' ', newPassword);
-//   try {
-//       interface TokenPayload extends JwtPayload {
-//           email: string;
-//       }
+ resetPassword :RequestHandler = async (req: Request, res: Response, next: NextFunction) =>{
+  const { token, newPassword } = req.body;
+  console.log('token & pass: ', token, ' ', newPassword);
+  try {
+      interface TokenPayload extends JwtPayload {
+          email: string;
+      }
+      const decoded = jwt.verify(token, process.env.RESET_LINK_SECRET as string) as TokenPayload;
+      console.log('decoded: ', decoded);
+      const { email } = decoded;
+      await this.companyService.resetPassword(email, newPassword);
+      res.status(200).json({ message: 'Token is valid', decoded });
+  } catch (error) {
+      res.status(400).json({ message: 'Invalid or expired token' });
+  }
+};
 
-//       const decoded = jwt.verify(token, process.env.RESET_LINK_SECRET as string) as TokenPayload;
-//       console.log('decoded: ', decoded);
-//       const { email } = decoded;
-//       await this.companyService.resetPassword(email, newPassword);
-//       res.status(200).json({ message: 'Token is valid', decoded });
-//   } catch (error) {
-//       res.status(400).json({ message: 'Invalid or expired token' });
-//   }
-// };
+ googleLogin :RequestHandler = async (req: Request, res: Response, next: NextFunction) =>{
+    const { idToken } = req.body;
+    try {
+        const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+        const user = await this.companyService.findOrCreateCompany(decodedToken);
+        if (!process.env.ACCESS_TOKEN_SECRET || !process.env.REFRESH_TOKEN_SECRET) {
+            throw new Error('JWT secrets are not configured');
+          }
+        const accessToken = jwt.sign({ userId: user.uid }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '20s' });
+        const refreshToken = jwt.sign({ userId: user.uid }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '1h' });
+
+        res.status(200).json({ 
+            success: true,
+            accessToken,
+            refreshToken,
+            user: {
+                email: user.email,
+                isAdmin: false,
+            }
+        });
+    } catch (error :any) {
+        if (error.code === 'auth/invalid-id-token') {
+            res.status(400).json({ message: 'Invalid Google ID Token' });
+            console.log('Invalid Google ID Token', error);
+        } else {
+            res.status(500).json({ message: 'Something went wrong during login', error: error.message });
+            console.log('Something went wrong during login', error);
+        }
+    }
+}
+
+
 }

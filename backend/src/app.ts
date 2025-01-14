@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import indexRouter from './routes/indexRouter'
+import adminRoter from './routes/admin/adminRoutes'
 import { errorHandler } from './middlewares/errorMiddleware'
 
 dotenv.config()
@@ -17,6 +18,7 @@ app.use(express.urlencoded({  limit: '10mb',extended: false }));
 
 
 app.use('/auth',indexRouter)
+app.use('/admin',adminRoter)
 
 // Error handler
 app.use(errorHandler);
